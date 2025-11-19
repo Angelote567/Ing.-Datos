@@ -1,0 +1,6 @@
+2025-11-19 19:22:39 - INFO - Pipeline execution started
+2025-11-19 19:22:39 - INFO - Starting: SCRAPPER
+2025-11-19 19:22:39 - ERROR - FAILED: SCRAPPER - return code 2
+2025-11-19 20:03:36 - INFO - Pipeline execution started
+2025-11-19 20:03:36 - INFO - Starting: SCRAPPER
+2025-11-19 20:03:36 - ERROR - FAILED: SCRAPPER - return code 2
