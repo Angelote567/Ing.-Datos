@@ -30,7 +30,7 @@
 
     
 
-
+ 
 #### (cleaner) Avoid processing catalogs (0.5 points)
 - [ ] Points awarded: 0.5
 - [ ] Comments:
@@ -59,7 +59,7 @@ You need to provide examples. All your comments on the code are very general, an
 
 #### 'results' module (0.5 points)
 - [ ] Points awarded: 0.3
-- [ ] Comments: there are a couplpe of issues here:
+- [ ] Comments: there are a couple of issues here:
 - - Your code only prints the results. You are not storing anywhere those results. What if it was a pipeline that needs to be executed daily and you need to track these results to monitor them?
 - - '@click.command()' being defined, but not used. It is doing nothing there.
 - - You are not logging anything from this module. You could use a log file to both log the execution and the results to keep track.
