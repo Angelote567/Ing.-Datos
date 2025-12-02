@@ -95,7 +95,7 @@ Also there are several issues:
 - - You should have considered using the variables in tab_cleaner/utils/chords.py.
 - - You are storing the results in the same validation folder. *This is a critical failure*. You should have created a new directory called 'lyrics' inside the files directory so you can access the lyrics only easily.
 
-#### 'insights' module (2 points)
+#### 'insights' module (2 points) 
 - [ ] Points awarded: 0.5
 - [ ] Comments: Code does not work as it states:
 ```
