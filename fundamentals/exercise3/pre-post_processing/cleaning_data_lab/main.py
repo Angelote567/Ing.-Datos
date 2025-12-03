@@ -8,6 +8,7 @@ import requests
 from datetime import datetime
 import pandas as pd
 import io
+
 print("=" * 70)
 print("DATA CLEANING EXERCISE - E-COMMERCE CUSTOMER ORDERS")
 print("=" * 70)
@@ -18,27 +19,29 @@ print(f"Started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
 # ============================================================================
 print("STEP 1: RETRIEVING DATA FROM WEB SOURCE")
 print("-" * 70)
- 
+
 url = "https://raw.githubusercontent.com/victorbrub/data-engineering-class/refs/heads/main/pre-post_processing/exercise.csv"
- 
+
 try:
     print(f"Fetching data from: {url}")
     response = requests.get(url, timeout=10)
- 
+
     print("Response:", response.text)
-   
-    print("✓ Data fetched from web source, loading into DataFrame...")
-    # print("Response:", response.text)  
-    df = pd.read_csv(io.StringIO(response.text),sep=',',on_bad_lines='warn')
-   
-    print(f"✓ Data retrieved successfully!")
-    print(f"✓ Status Code: {response.status_code}")
-    print(f"✓ Rows: {len(df)}, Columns: {len(df.columns)}\n")
+
+    print("Data fetched from web source, loading into DataFrame...")
+    df = pd.read_csv(io.StringIO(response.text), sep=",", on_bad_lines="warn")
+
+    print(f"Data retrieved successfully!")
+    print(f"Status Code: {response.status_code}")
+    print(f"Rows: {len(df)}, Columns: {len(df.columns)}\n")
     print(df.head())
-   
+
 except Exception as e:
     print(f"✗ Error: {e}")
     raise e
+
+# Keep a copy of the RAW data (before cleaning) for quality tests
+raw_df = df.copy(deep=True)
 
 # ============================================================================
 # STEP 2: INITIAL EXPLORATION
@@ -56,12 +59,15 @@ print(f"\nTotal Missing: {df.isnull().sum().sum()}\n")
 # ============================================================================
 print("STEP 3: DATA QUALITY ISSUES")
 print("-" * 70)
- 
+
 print(f"Duplicates: {df.duplicated().sum()}")
 print(f"Duplicate OrderIDs: {df['OrderID'].duplicated().sum()}")
- 
-if df[df.duplicated(subset=['OrderID'], keep=False)].shape[0] > 0:
-    print(f"\nDuplicate Records:\n{df[df.duplicated(subset=['OrderID'], keep=False)].sort_values('OrderID')}\n")
+
+if df[df.duplicated(subset=["OrderID"], keep=False)].shape[0] > 0:
+    print(
+        f"\nDuplicate Records:\n"
+        f"{df[df.duplicated(subset=['OrderID'], keep=False)].sort_values('OrderID')}\n"
+    )
 
 # ============================================================================
 # STEP 4: DATA CLEANING
@@ -166,9 +172,94 @@ df.to_csv(output_path, index=False)
 print(f"✓ Cleaned dataset saved as: {output_path}\n")
 
 # ============================================================================
+# STEP 7: DATA QUALITY TESTS (RAW VS CLEANED)
+# ============================================================================
+print("STEP 7: DATA QUALITY TESTS (RAW VS CLEANED)")
+print("-" * 70)
+
+
+def compute_quality_scores(df_in: pd.DataFrame, name: str):
+    """Compute simple data quality metrics for the given DataFrame."""
+    n = len(df_in)
+    print(f"\nData quality scores for: {name}")
+    print(f"Total rows: {n}")
+
+    # --- Accuracy ---
+    qty = pd.to_numeric(df_in["Quantity"], errors="coerce")
+    price = pd.to_numeric(df_in["Price"], errors="coerce")
+    age = (
+        df_in["CustomerAge"]
+        .replace("unknown", pd.NA)
+        .pipe(pd.to_numeric, errors="coerce")
+    )
+    mask_accuracy = (
+        qty.notna()
+        & price.notna()
+        & age.notna()
+        & (qty > 0)
+        & (qty <= 1000)
+        & (price > 0)
+        & (age > 0)
+        & (age <= 120)
+    )
+    accuracy = mask_accuracy.mean()
+
+    # --- Completeness ---
+    required_cols = ["Email", "Price", "CustomerAge"]
+    mask_completeness = df_in[required_cols].notna().all(axis=1)
+    completeness = mask_completeness.mean()
+
+    # --- Consistency (countries) ---
+    country = df_in["Country"].astype(str).str.strip()
+    lower_country = country.str.lower()
+    allowed_raw = [
+        "usa",
+        "us",
+        "united states",
+        "united kingdom",
+        "uk",
+        "gb",
+        "canada",
+    ]
+    mask_consistency = lower_country.isin(allowed_raw)
+    consistency = mask_consistency.mean()
+
+    # --- Validity (email + numeric + date) ---
+    email = df_in["Email"].astype(str).str.strip()
+    mask_email_valid = (
+        email.str.contains("@")
+        & email.str.contains(r"\.", regex=True)
+        & ~email.str.contains("invalid_email", case=False)
+    )
+    date_parsed = pd.to_datetime(df_in["OrderDate"], errors="coerce")
+    mask_valid = (
+        mask_email_valid
+        & date_parsed.notna()
+        & qty.notna()
+        & price.notna()
+    )
+    validity = mask_valid.mean()
+
+    # --- Uniqueness (OrderID) ---
+    mask_unique = ~df_in["OrderID"].duplicated(keep=False)
+    uniqueness = mask_unique.mean()
+
+    # Print scores as percentages
+    print(f"Accuracy:     {accuracy:6.2%}")
+    print(f"Completeness: {completeness:6.2%}")
+    print(f"Consistency:  {consistency:6.2%}")
+    print(f"Validity:     {validity:6.2%}")
+    print(f"Uniqueness:   {uniqueness:6.2%}")
+
+
+# Compare RAW vs CLEANED
+compute_quality_scores(raw_df, "RAW DATA")
+compute_quality_scores(df, "CLEANED DATA")
+
+# ============================================================================
 # SUMMARY
 # ============================================================================
-print("-" * 70)
+print("\n" + "-" * 70)
 print(f"Initial rows: {initial_rows}")
 print(f"Final rows:   {len(df)}")
 print(f"Duplicates removed: {initial_rows - len(df)}")
